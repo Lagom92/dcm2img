@@ -1,8 +1,13 @@
 # Reference: https://github.com/ucs198604/dicom2jpg
-import numpy as np
+import os
+import cv2
 import pydicom
+import numpy as np
+from glob import glob
 from pydicom.pixel_data_handlers.util import apply_voi_lut, apply_modality_lut
 
+
+# Convert dcm to array
 def dcm2img(dcm_path):
     ds = pydicom.dcmread(dcm_path)
     pixel_array = ds.pixel_array.astype(float)
@@ -42,3 +47,44 @@ def dcm2img(dcm_path):
     image = pixel_array.astype('uint8')
 
     return image
+
+
+# Save dcm to jpg
+def dcm2jpg(in_path):
+    dcm_path_lst = glob(in_path+'*.dcm')
+    jpg_dir_path = in_path + 'jpg/'
+
+    # Make dir
+    if not os.path.exists(jpg_dir_path):
+        os.makedirs(jpg_dir_path)
+
+    for dcm_path in dcm_path_lst:
+        dcm_path = dcm_path.replace('\\', '/')
+        jpg_path = jpg_dir_path + dcm_path.split('/')[-1][:-4] + '.jpg'
+        # Convert dcm to image
+        image = dcm2img(dcm_path)
+
+        # Save iamge
+        cv2.imwrite(jpg_path, image)
+
+
+# Get tag info about converting
+def getTag(dcm_path):
+    tag = {}
+    ds = pydicom.dcmread(dcm_path)
+
+    RescaleSlope = ds.get('RescaleSlope', 'None')
+    RescaleIntercept = ds.get('RescaleIntercept', 'None')
+    VOILUTFunction = ds.get('VOILUTFunction', 'None')
+    WindowCenter = ds.get('WindowCenter', 'None')
+    WindowWidth = ds.get('WindowWidth', 'None')
+    PhotometricInterpretation = ds.get('PhotometricInterpretation', 'None')
+
+    tag['RescaleSlope'] = RescaleSlope
+    tag['RescaleIntercept'] = RescaleIntercept
+    tag['VOILUTFunction'] = VOILUTFunction
+    tag['WindowCenter'] = WindowCenter
+    tag['WindowWidth'] = WindowWidth
+    tag['PhotometricInterpretation'] = PhotometricInterpretation
+        
+    return tag
